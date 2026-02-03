@@ -2,6 +2,9 @@ Pasos para instalacion:
 
 pip install fastapi uvicorn sqlalchemy pydantic
 python -m venv venv
+
+    ESTO SE DEBE DE HACER SIEMPRE:
+    
 .\venv\Scripts\activate
 pip install fastapi uvicorn sqlalchemy pydantic
 

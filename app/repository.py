@@ -22,3 +22,24 @@ class PersonaRepository:
         self.db.delete(persona)
         self.db.commit()
         return persona
+    
+class CosaRepository:
+    def __init__(self, db: Session):
+        self.db = db
+
+    def save(self, cosa: models.Cosa):
+        self.db.add(cosa)
+        self.db.commit()
+        self.db.refresh(cosa)
+        return cosa
+    
+    def find_all(self):
+        return self.db.query(models.Cosa).all()
+
+    def find_by_id(self, id: int):
+        return self.db.query(models.Cosa).filter(models.Cosa.id == id).first()
+    
+    def delete(self, cosa: models.Cosa):
+        self.db.delete(cosa)
+        self.db.commit()
+        return cosa
