@@ -2,11 +2,25 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
 import models, schemas, database, service
+from fastapi.middleware.cors import CORSMiddleware
+
+app = FastAPI(title="Persona CRUD FastAPI")
+
+# --- AGREGA ESTO ---
+origins = [
+    "http://localhost:4200",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"], # Permitir GET, POST, PUT, DELETE
+    allow_headers=["*"],
+)
 
 # Crea las tablas automáticamente al iniciar
 models.Base.metadata.create_all(bind=database.engine)
-
-app = FastAPI(title="Persona CRUD FastAPI")
 
 # Inyección de Dependencia para el Servicio
 def get_persona_service(db: Session = Depends(database.get_db)):
