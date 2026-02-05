@@ -15,10 +15,10 @@ app = FastAPI(title="API de Notificaciones")
 #Configuración de CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:4200"],  # Permitir el origen de Angular
+    allow_origins=["*"],  # Permitir todos los orígenes temporalmente para pruebas
     allow_credentials=True,
-    allow_methods=["*"],  # Permitir todos los métodos (GET, POST, OPTIONS, etc.)
-    allow_headers=["*"],  # Permitir todos los headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 # 
