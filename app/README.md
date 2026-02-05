@@ -21,5 +21,5 @@ python -m venv venv (Crear la caja)
 .\venv\Scripts\activate (Entrar a la caja)
 
 pip install fastapi uvicorn sqlalchemy pydantic psycopg2-binary (Llenar la caja)
-
+pip install pydantic-settings python-dotenv
 uvicorn main:app --reload (Arrancar)

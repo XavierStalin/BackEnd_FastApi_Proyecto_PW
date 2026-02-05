@@ -8,7 +8,7 @@ from sqlalchemy.orm import sessionmaker
     #SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
 #)
 
-SQLALCHEMY_DATABASE_URL = "postgresql://postgres:system@localhost:5432/BDFastApi"
+SQLALCHEMY_DATABASE_URL = "postgresql://postgres:system@localhost:5432/pruebaPW"
 
 engine = create_engine(SQLALCHEMY_DATABASE_URL)
 

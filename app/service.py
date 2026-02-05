@@ -1,62 +1,54 @@
 from sqlalchemy.orm import Session
-from repository import CosaRepository, PersonaRepository
+from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
+import requests
 import models, schemas
+from repository import EmailRepository
 
-class PersonaService:
-    def __init__(self, db: Session):
-        self.repo = PersonaRepository(db)
+class EmailService:
+    def __init__(self, db: Session, mail_config: ConnectionConfig):
+        self.repo = EmailRepository(db)
+        self.mail_config = mail_config
+        self.fast_mail = FastMail(mail_config)
 
-    def get_all(self):
-        return self.repo.find_all()
+    async def send_and_save(self, email_req: schemas.EmailRequest):
+        estado_envio = "Pendiente"
+        
+        try:
+            # El correo REAL se envía desde el correo del sistema
+            # Pero incluimos quién es el remitente LÓGICO en el cuerpo
+            cuerpo_con_remitente = f"""
+            <html>
+            <body>
+                <p><strong>📧 Este mensaje es de: {email_req.remitente}</strong></p>
+                <hr>
+                <p>{email_req.cuerpo}</p>
+            </body>
+            </html>
+            """
+            
+            message = MessageSchema(
+                subject=f"[De: {email_req.remitente}] {email_req.asunto}",
+                recipients=[email_req.destinatario],
+                body=cuerpo_con_remitente,
+                subtype="html"
+            )
+            
+            await self.fast_mail.send_message(message)
+            estado_envio = "Enviado"
+            
+        except Exception as e:
+            print(f"Error enviando correo: {e}")
+            estado_envio = "Fallido"
 
-    def get_by_cedula(self, cedula: str):
-        return self.repo.find_by_cedula(cedula)
+        # Guardar en BD
+        nuevo_correo = models.HistorialCorreo(
+            remitente=email_req.remitente,
+            destinatario=email_req.destinatario,
+            asunto=email_req.asunto,
+            contenido=email_req.cuerpo,
+            estado=estado_envio
+        )
+        return self.repo.save(nuevo_correo)
 
-    def create(self, persona_data: schemas.PersonaCreate):
-        # Convierte el esquema (DTO) a Modelo de Base de Datos
-        persona = models.Persona(**persona_data.model_dump())
-        return self.repo.save(persona)
-    
-    def update(self, cedula: str, persona_data: schemas.PersonaUpdate):
-        # 1. Buscar si existe en la base de datos
-        db_persona = self.repo.find_by_cedula(cedula)
-        if not db_persona:
-            return None # Le avisamos al controller que no existe
-        # 2. Actualizar los campos
-        # exclude_unset=True significa: "Ignora los campos que el usuario no envió"
-        update_data = persona_data.model_dump(exclude_unset=True)
-
-        for key, value in update_data.items():
-            setattr(db_persona, key, value) # Actualiza el atributo del objeto
-        # 3. Guardar los cambios (Reusamos el método save del repo)
-        return self.repo.save(db_persona)
-    
-    def delete(self, cedula: str):
-        # 1. Buscar si existe en la base de datos
-        db_persona = self.repo.find_by_cedula(cedula)
-        if not db_persona:
-            return None # Le avisamos al controller que no existe
-        # 2. Borrar de la base de datos
-        return self.repo.delete(db_persona)
-    
-
-class CosaService:
-    def __init__(self, db: Session):
-        self.repo = CosaRepository(db)
-        self.persona_repo = PersonaRepository(db)
-
-    def get_all(self):
-        return self.repo.find_all()
-
-    def get_by_id(self, id: int):
-        return self.repo.find_by_id(id)
-
-    def create(self, cosa_data: schemas.CosaCreate):
-        # Convierte el esquema (DTO) a Modelo de Base de Datos
-        persona_existente = self.persona_repo.find_by_cedula(cosa_data.persona_cedula)
-        if not persona_existente:
-            return None
-        cosa = models.Cosa(**cosa_data.model_dump())
-        return self.repo.save(cosa)
-    
-    
+    def get_history(self):
+        return self.repo.get_all()

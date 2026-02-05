@@ -1,81 +1,80 @@
-from fastapi import FastAPI, Depends, HTTPException
-from sqlalchemy.orm import Session
-from typing import List
-import models, schemas, database, service
+from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy.orm import Session
+from fastapi_mail import ConnectionConfig
+from typing import List
 
-app = FastAPI(title="Persona CRUD FastAPI")
+from database import SessionLocal, engine, Base
+from config import get_settings, Settings
+import models, schemas, service
 
-# --- AGREGA ESTO ---
-origins = [
-    "http://localhost:4200",
-]
+# Crear las tablas en la BD
+Base.metadata.create_all(bind=engine)
 
+app = FastAPI(title="API de Notificaciones")
+#Configuración de CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
+    allow_origins=["http://localhost:4200"],  # Permitir el origen de Angular
     allow_credentials=True,
-    allow_methods=["*"], # Permitir GET, POST, PUT, DELETE
-    allow_headers=["*"],
+    allow_methods=["*"],  # Permitir todos los métodos (GET, POST, OPTIONS, etc.)
+    allow_headers=["*"],  # Permitir todos los headers
 )
 
-# Crea las tablas automáticamente al iniciar
-models.Base.metadata.create_all(bind=database.engine)
+# 
+# Dependencia para obtener la sesión de BD
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-# Inyección de Dependencia para el Servicio
-def get_persona_service(db: Session = Depends(database.get_db)):
-    return service.PersonaService(db)
+# Configuración de correo (usando variables de entorno)
+def get_mail_config(settings: Settings = Depends(get_settings)):
+    return ConnectionConfig(
+        MAIL_USERNAME=settings.MAIL_USERNAME,
+        MAIL_PASSWORD=settings.MAIL_PASSWORD,
+        MAIL_FROM=settings.MAIL_FROM,
+        MAIL_PORT=settings.MAIL_PORT,
+        MAIL_SERVER=settings.MAIL_SERVER,
+        MAIL_STARTTLS=True,
+        MAIL_SSL_TLS=False,
+        USE_CREDENTIALS=True
+    )
 
-def get_cosa_service(db: Session = Depends(database.get_db)):
-    return service.CosaService(db)
+# --- ENDPOINTS DE CORREO ---
 
-@app.get("/api/personas", response_model=List[schemas.Persona])
-def read_personas(svc: service.PersonaService = Depends(get_persona_service)):
-    return svc.get_all()
+@app.post("/email/", response_model=schemas.EmailResponse)
+async def enviar_correo(
+    email_data: schemas.EmailRequest, 
+    db: Session = Depends(get_db),
+    settings: Settings = Depends(get_settings)
+):
+    mail_conf = ConnectionConfig(
+        MAIL_USERNAME=settings.MAIL_USERNAME,
+        MAIL_PASSWORD=settings.MAIL_PASSWORD,
+        MAIL_FROM=settings.MAIL_FROM,
+        MAIL_PORT=settings.MAIL_PORT,
+        MAIL_SERVER=settings.MAIL_SERVER,
+        MAIL_STARTTLS=True,
+        MAIL_SSL_TLS=False,
+        USE_CREDENTIALS=True
+    )
+    srv = service.EmailService(db, mail_conf)
+    return await srv.send_and_save(email_data)
 
-@app.post("/api/personas", response_model=schemas.Persona, status_code=201)
-def create_persona(persona: schemas.PersonaCreate, svc: service.PersonaService = Depends(get_persona_service)):
-    return svc.create(persona)
-
-@app.get("/api/personas/{cedula}", response_model=schemas.Persona)
-def read_persona(cedula: str, svc: service.PersonaService = Depends(get_persona_service)):
-    persona = svc.get_by_cedula(cedula)
-    if not persona:
-        raise HTTPException(status_code=404, detail="Persona not found")
-    return persona
-@app.put("/api/personas/{cedula}", response_model=schemas.Persona)
-def update_persona(cedula: str, persona: schemas.PersonaUpdate, svc: service.PersonaService = Depends(get_persona_service)):
-    updated_persona = svc.update(cedula, persona)
-    
-    if not updated_persona:
-        raise HTTPException(status_code=404, detail="Persona no encontrada, no se puede actualizar")
-    
-    return updated_persona
-
-@app.delete("/api/personas/{cedula}", status_code=204)
-def delete_persona(cedula: str, svc: service.PersonaService = Depends(get_persona_service)):
-    deleted_persona = svc.delete(cedula)
-    
-    if not deleted_persona:
-        raise HTTPException(status_code=404, detail="Persona no encontrada, no se puede eliminar")
-    
-    return
-#----------------------------------------------------------------------------
-@app.post("/api/cosas", response_model=schemas.Cosa, status_code=201)
-def create_cosa(cosa: schemas.CosaCreate, svc: service.CosaService = Depends(get_cosa_service)):
-    nueva_cosa = svc.create(cosa)
-    if not nueva_cosa:
-        raise HTTPException(status_code=404, detail="Persona no encontrada, no se puede crear la cosa")
-    return nueva_cosa
-
-@app.get("/api/cosas", response_model=List[schemas.Cosa])
-def read_cosas(svc: service.CosaService = Depends(get_cosa_service)):
-    return svc.get_all()
-
-
-@app.get("/api/cosas/{id}", response_model=schemas.Cosa)
-def read_cosa_by_id(id: int, svc: service.CosaService = Depends(get_cosa_service)):
-    cosa = svc.get_by_id(id)
-    if not cosa:
-        raise HTTPException(status_code=404, detail="Cosa not found")
-    return cosa
+@app.get("/email/historial", response_model=List[schemas.EmailResponse])
+def ver_historial_correos(db: Session = Depends(get_db), settings: Settings = Depends(get_settings)):
+    mail_conf = ConnectionConfig(
+        MAIL_USERNAME=settings.MAIL_USERNAME,
+        MAIL_PASSWORD=settings.MAIL_PASSWORD,
+        MAIL_FROM=settings.MAIL_FROM,
+        MAIL_PORT=settings.MAIL_PORT,
+        MAIL_SERVER=settings.MAIL_SERVER,
+        MAIL_STARTTLS=True,
+        MAIL_SSL_TLS=False,
+        USE_CREDENTIALS=True
+    )
+    srv = service.EmailService(db, mail_conf)
+    return srv.get_history()

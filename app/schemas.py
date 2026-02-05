@@ -1,44 +1,22 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
+from datetime import datetime
 from typing import Optional
 
-class CosaBase(BaseModel):
-    descripcion: str
-    monto: float
+# --- CORREO ---
+class EmailRequest(BaseModel):
+    remitente: EmailStr       # Correo de quien "envía" (solo informativo)
+    destinatario: EmailStr    # A quién llegará el correo
+    asunto: str
+    cuerpo: str
 
-class CosaCreate(CosaBase):
-    persona_cedula: str
-
-class CosaUpdate(BaseModel):
-    descripcion: Optional[str] = None
-    monto: Optional[float] = None
-    
-
-class Cosa(CosaBase):
+class EmailResponse(BaseModel):
     id: int
-    persona_cedula: str
+    remitente: str
+    destinatario: str
+    asunto: str
+    contenido: str
+    fecha_envio: datetime
+    estado: str
+    
     class Config:
-        from_attributes = True  # Vital para compatibilidad con ORM
-
-
-
-
-
-#--------------------------------------------------------------------
-class PersonaBase(BaseModel):
-    cedula: str
-    nombre: str
-    direccion: str
-
-class PersonaCreate(PersonaBase):
-    pass
-
-class PersonaUpdate(BaseModel):
-    cedula: Optional[str] = None
-    nombre: Optional[str] = None
-    direccion: Optional[str] = None
-
-class Persona(PersonaBase):
-    # Opcional: Si quieres ver los pedidos cuando pidas la persona
-    # pedidos: List[Pedido] = []
-    class Config:
-        from_attributes = True  # Vital para compatibilidad con ORM
+        from_attributes = True
