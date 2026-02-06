@@ -1,7 +1,6 @@
 from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
-from fastapi_mail import ConnectionConfig
 from typing import List
 
 from database import SessionLocal, engine, Base
@@ -28,37 +27,21 @@ def get_db():
     finally:
         db.close()
 
-# --- CONFIGURACIÓN UNIFICADA DE CORREO ---
-# Cambiamos a STARTTLS=True y SSL_TLS=False para el puerto 587
-def get_mail_config(settings: Settings = Depends(get_settings)):
-    return ConnectionConfig(
-        MAIL_USERNAME=settings.MAIL_USERNAME,
-        MAIL_PASSWORD=settings.MAIL_PASSWORD,
-        MAIL_FROM=settings.MAIL_FROM,
-        MAIL_PORT=465,
-        MAIL_SERVER=settings.MAIL_SERVER,
-        MAIL_STARTTLS=False,
-        MAIL_SSL_TLS=True,
-        USE_CREDENTIALS=True,
-        VALIDATE_CERTS=False,
-        TIMEOUT=60  # <--- Tiempo de espera aumentado a 60 segundos
-    )
-
 # --- ENDPOINTS DE CORREO ---
 
 @app.post("/email/", response_model=schemas.EmailResponse)
 async def enviar_correo(
     email_data: schemas.EmailRequest, 
     db: Session = Depends(get_db),
-    mail_conf: ConnectionConfig = Depends(get_mail_config) # <-- Usamos la dependencia limpia
+    settings: Settings = Depends(get_settings)
 ):
-    srv = service.EmailService(db, mail_conf)
+    srv = service.EmailService(db, settings)
     return await srv.send_and_save(email_data)
 
 @app.get("/email/historial", response_model=List[schemas.EmailResponse])
 def ver_historial_correos(
     db: Session = Depends(get_db), 
-    mail_conf: ConnectionConfig = Depends(get_mail_config) # <-- Usamos la misma dependencia
+    settings: Settings = Depends(get_settings)
 ):
-    srv = service.EmailService(db, mail_conf)
+    srv = service.EmailService(db, settings)
     return srv.get_history()

@@ -8,11 +8,9 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "postgresql://postgres:system@localhost:5432/pruebaPW"
 
     # --- Configuración de Correo ---
-    MAIL_USERNAME: str = "tu_correo_por_defecto@gmail.com" # Valor default opcional
-    MAIL_PASSWORD: str = "tu_password"
-    MAIL_FROM: str = "tu_correo@gmail.com"
-    MAIL_PORT: int = 587
-    MAIL_SERVER: str = "smtp.gmail.com"
+    RESEND_API_KEY: str = ""
+    # MAIL_FROM será el remitente verificado en Resend (ej: onboarding@resend.dev)
+    MAIL_FROM: str = "onboarding@resend.dev"
     
     class Config:
         # Pydantic leerá primero las variables de entorno del sistema (Railway),
