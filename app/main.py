@@ -67,14 +67,15 @@ async def enviar_correo(
 @app.get("/email/historial", response_model=List[schemas.EmailResponse])
 def ver_historial_correos(db: Session = Depends(get_db), settings: Settings = Depends(get_settings)):
     mail_conf = ConnectionConfig(
-        MAIL_USERNAME=settings.MAIL_USERNAME,
-        MAIL_PASSWORD=settings.MAIL_PASSWORD,
-        MAIL_FROM=settings.MAIL_FROM,
-        MAIL_PORT=settings.MAIL_PORT,
-        MAIL_SERVER=settings.MAIL_SERVER,
-        MAIL_STARTTLS=True,
-        MAIL_SSL_TLS=False,
-        USE_CREDENTIALS=True
+        MAIL_USERNAME = settings.MAIL_USERNAME,
+        MAIL_PASSWORD = settings.MAIL_PASSWORD,
+        MAIL_FROM = settings.MAIL_FROM,
+        MAIL_PORT = settings.MAIL_PORT, # 465
+        MAIL_SERVER = settings.MAIL_SERVER,
+        MAIL_STARTTLS = False,  # <--- OBLIGATORIO: False para el puerto 465
+        MAIL_SSL_TLS = True,    # <--- OBLIGATORIO: True para el puerto 465
+        USE_CREDENTIALS = True,
+        VALIDATE_CERTS = True
     )
     srv = service.EmailService(db, mail_conf)
     return srv.get_history()
