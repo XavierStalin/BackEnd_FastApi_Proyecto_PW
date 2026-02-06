@@ -35,12 +35,13 @@ def get_mail_config(settings: Settings = Depends(get_settings)):
         MAIL_USERNAME=settings.MAIL_USERNAME,
         MAIL_PASSWORD=settings.MAIL_PASSWORD,
         MAIL_FROM=settings.MAIL_FROM,
-        MAIL_PORT=587,                 # Forzamos el puerto compatible con Railway
+        MAIL_PORT=587,
         MAIL_SERVER=settings.MAIL_SERVER,
-        MAIL_STARTTLS=True,            # <--- REQUERIDO PARA PUERTO 587
-        MAIL_SSL_TLS=False,           # <--- REQUERIDO PARA PUERTO 587
+        MAIL_STARTTLS=True,
+        MAIL_SSL_TLS=False,
         USE_CREDENTIALS=True,
-        VALIDATE_CERTS=True
+        VALIDATE_CERTS=False,
+        TIMEOUT=60  # <--- Tiempo de espera aumentado a 60 segundos
     )
 
 # --- ENDPOINTS DE CORREO ---
