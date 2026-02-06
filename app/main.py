@@ -57,8 +57,8 @@ async def enviar_correo(
         MAIL_FROM=settings.MAIL_FROM,
         MAIL_PORT=settings.MAIL_PORT,
         MAIL_SERVER=settings.MAIL_SERVER,
-        MAIL_STARTTLS=True,
-        MAIL_SSL_TLS=False,
+        MAIL_STARTTLS=False,
+        MAIL_SSL_TLS=True,
         USE_CREDENTIALS=True
     )
     srv = service.EmailService(db, mail_conf)
