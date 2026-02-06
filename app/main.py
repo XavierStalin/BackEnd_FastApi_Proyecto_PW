@@ -12,17 +12,15 @@ import models, schemas, service
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="API de Notificaciones")
-#Configuración de CORS
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Permitir todos los orígenes temporalmente para pruebas
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 
-# Dependencia para obtener la sesión de BD
 def get_db():
     db = SessionLocal()
     try:
@@ -30,17 +28,19 @@ def get_db():
     finally:
         db.close()
 
-# Configuración de correo (usando variables de entorno)
+# --- CONFIGURACIÓN UNIFICADA DE CORREO ---
+# Cambiamos a STARTTLS=True y SSL_TLS=False para el puerto 587
 def get_mail_config(settings: Settings = Depends(get_settings)):
     return ConnectionConfig(
         MAIL_USERNAME=settings.MAIL_USERNAME,
         MAIL_PASSWORD=settings.MAIL_PASSWORD,
         MAIL_FROM=settings.MAIL_FROM,
-        MAIL_PORT=settings.MAIL_PORT,
+        MAIL_PORT=587,                 # Forzamos el puerto compatible con Railway
         MAIL_SERVER=settings.MAIL_SERVER,
-        MAIL_STARTTLS=False,
-        MAIL_SSL_TLS=True,
-        USE_CREDENTIALS=True
+        MAIL_STARTTLS=True,            # <--- REQUERIDO PARA PUERTO 587
+        MAIL_SSL_TLS=False,           # <--- REQUERIDO PARA PUERTO 587
+        USE_CREDENTIALS=True,
+        VALIDATE_CERTS=True
     )
 
 # --- ENDPOINTS DE CORREO ---
@@ -49,33 +49,15 @@ def get_mail_config(settings: Settings = Depends(get_settings)):
 async def enviar_correo(
     email_data: schemas.EmailRequest, 
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings)
+    mail_conf: ConnectionConfig = Depends(get_mail_config) # <-- Usamos la dependencia limpia
 ):
-    mail_conf = ConnectionConfig(
-        MAIL_USERNAME=settings.MAIL_USERNAME,
-        MAIL_PASSWORD=settings.MAIL_PASSWORD,
-        MAIL_FROM=settings.MAIL_FROM,
-        MAIL_PORT=settings.MAIL_PORT,
-        MAIL_SERVER=settings.MAIL_SERVER,
-        MAIL_STARTTLS=False,
-        MAIL_SSL_TLS=True,
-        USE_CREDENTIALS=True
-    )
     srv = service.EmailService(db, mail_conf)
     return await srv.send_and_save(email_data)
 
 @app.get("/email/historial", response_model=List[schemas.EmailResponse])
-def ver_historial_correos(db: Session = Depends(get_db), settings: Settings = Depends(get_settings)):
-    mail_conf = ConnectionConfig(
-        MAIL_USERNAME = settings.MAIL_USERNAME,
-        MAIL_PASSWORD = settings.MAIL_PASSWORD,
-        MAIL_FROM = settings.MAIL_FROM,
-        MAIL_PORT = settings.MAIL_PORT, # 465
-        MAIL_SERVER = settings.MAIL_SERVER,
-        MAIL_STARTTLS = False,  # <--- OBLIGATORIO: False para el puerto 465
-        MAIL_SSL_TLS = True,    # <--- OBLIGATORIO: True para el puerto 465
-        USE_CREDENTIALS = True,
-        VALIDATE_CERTS = True
-    )
+def ver_historial_correos(
+    db: Session = Depends(get_db), 
+    mail_conf: ConnectionConfig = Depends(get_mail_config) # <-- Usamos la misma dependencia
+):
     srv = service.EmailService(db, mail_conf)
     return srv.get_history()

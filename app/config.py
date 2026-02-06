@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     MAIL_USERNAME: str = "tu_correo_por_defecto@gmail.com" # Valor default opcional
     MAIL_PASSWORD: str = "tu_password"
     MAIL_FROM: str = "tu_correo@gmail.com"
-    MAIL_PORT: int = 465
+    MAIL_PORT: int = 587
     MAIL_SERVER: str = "smtp.gmail.com"
     
     class Config:
