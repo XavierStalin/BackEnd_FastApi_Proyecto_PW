@@ -7,3 +7,4 @@ pydantic-settings
 python-dotenv
 resend
 requests
+email-validator
